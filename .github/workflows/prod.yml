@@ -91,7 +91,7 @@ jobs:
       run: |
         echo "$DO_SSH_KEY" > private_key.pem
         chmod 600 private_key.pem
-        scp -i private_key.pem compose.yml root@$DO_HOST:~
+        scp -o StrictHostKeyChecking=no -i private_key.pem compose.yml root@$DO_HOST:~
 
     - name: Deploy
       uses: appleboy/ssh-action@master
