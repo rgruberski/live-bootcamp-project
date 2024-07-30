@@ -1,3 +1,4 @@
+use uuid::Uuid;
 use auth_service::Application;
 
 pub struct TestApp {
@@ -75,4 +76,8 @@ impl TestApp {
     }
 
     // TODO: Implement helper functions for all other routes (signup, login, logout, verify-2fa, and verify-token)
+}
+
+pub fn get_random_email() -> String {
+    format!("{}@example.com", Uuid::new_v4())
 }
