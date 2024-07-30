@@ -1,16 +1,61 @@
 services:
   app-service:
     image: rgruberski/app-service # specify name of image on Docker Hub
+    hostname: rust-app-service
     restart: "always" # automatically restart container when server crashes
     environment: # set up environment variables
       AUTH_SERVICE_IP: ${AUTH_SERVICE_IP:-localhost} # Use localhost as the default value
-    ports:
-      - "8000:8000" # expose port 8000 so that applications outside the container can connect to it 
+    expose:
+      - 8000
     depends_on: # only run app-service after auth-service has started
       auth-service:
         condition: service_started
+    networks:
+      - rust-network
+
   auth-service:
     image: rgruberski/auth-service
+    hostname: rust-auth-service
     restart: "always" # automatically restart container when server crashes
+    expose:
+      - 3000
+    networks:
+      - rust-network
+
+  webserver:
+    image: nginx:mainline-alpine
+    container_name: webserver
+    restart: unless-stopped
     ports:
-      - "3000:3000" # expose port 3000 so that applications outside the container can connect to it 
+      - "80:80"
+      - "443:443"
+    volumes:
+      - web-root:/var/www/html
+      - ./config/nginx-conf:/etc/nginx/conf.d
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - ./dhparam:/etc/ssl/certs
+    depends_on:
+      - app-service
+      - auth-service
+    networks:
+      - rust-network
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - web-root:/var/www/html
+    depends_on:
+      - webserver
+    command: certonly --webroot --webroot-path=/var/www/html --email rgruberski@gmail.com --agree-tos --no-eff-email --force-renewal -d rust.gruberski.pl
+
+volumes:
+  certbot-etc:
+  certbot-var:
+  web-root:
+
+networks:
+  rust-network:
