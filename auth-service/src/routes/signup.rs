@@ -2,7 +2,7 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 
-use crate::{app_state::AppState, domain::{AuthAPIError, User}, services::UserStoreError};
+use crate::{app_state::AppState, domain::{AuthAPIError, User, UserStoreError}};
 
 pub async fn signup(
     State(state): State<AppState>,
@@ -24,7 +24,7 @@ pub async fn signup(
 
     let mut user_store = state.user_store.write().await;
 
-    match user_store.add_user(user) {
+    match user_store.add_user(user).await {
         Ok(_) => (),
         Err(UserStoreError::UserAlreadyExists) => return Err(AuthAPIError::UserAlreadyExists),
         Err(_) => return Err(AuthAPIError::UnexpectedError),
