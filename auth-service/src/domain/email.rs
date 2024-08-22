@@ -2,7 +2,7 @@ use super::UserStoreError;
 
 use validator::validate_email;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Email(String);
 
 impl Email {

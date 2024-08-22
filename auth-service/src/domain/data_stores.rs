@@ -1,4 +1,4 @@
-use super::User;
+use super::{email::Email, password::Password, User};
 
 #[async_trait::async_trait]
 pub trait UserStore {
@@ -6,8 +6,8 @@ pub trait UserStore {
     // Make sure all methods are async so we can use async user stores in the future
 
     async fn add_user(&mut self, user: User) -> Result<(), UserStoreError>;
-    async fn get_user(&self, email: &str) -> Result<User, UserStoreError>;
-    async fn validate_user(&self, email: &str, password: &str) -> Result<(), UserStoreError>;
+    async fn get_user(&self, email: &Email) -> Result<User, UserStoreError>;
+    async fn validate_user(&self, email: &Email, password: &Password) -> Result<(), UserStoreError>;
 }
 
 #[derive(Debug, PartialEq)]
@@ -16,4 +16,5 @@ pub enum UserStoreError {
     UserNotFound,
     InvalidCredentials,
     UnexpectedError,
+    InvalidEmail,
 }
