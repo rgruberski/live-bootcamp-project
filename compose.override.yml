@@ -12,7 +12,8 @@ services:
       - "3000:3000"
 
   webserver:
-    entrypoint: ["echo", "Service foo disabled"]
+    restart: no
+    entrypoint: ["echo", "Service webserver disabled"]
 
   certbot:
-    entrypoint: ["echo", "Service foo disabled"]
+    entrypoint: ["echo", "Service certbot disabled"]

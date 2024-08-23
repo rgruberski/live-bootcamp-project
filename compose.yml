@@ -17,6 +17,8 @@ services:
     image: rgruberski/auth-service
     hostname: rust-auth-service
     restart: "always" # automatically restart container when server crashes
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
     expose:
       - 3000
     networks:
