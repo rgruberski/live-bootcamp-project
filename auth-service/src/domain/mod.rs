@@ -1,7 +1,7 @@
 mod user;
 mod error;
 mod data_stores;
-mod email;
+pub(crate) mod email;
 mod password;
 
 pub use user::*;

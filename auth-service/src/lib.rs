@@ -14,6 +14,7 @@ mod app_state;
 mod domain;
 pub mod routes;
 mod services;
+pub mod utils;
 
 // This struct encapsulates our application-related logic.
 pub struct Application {
