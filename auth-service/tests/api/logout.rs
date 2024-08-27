@@ -1,4 +1,5 @@
 use reqwest::Url;
+use auth_service::domain::BannedTokenStoreError;
 use auth_service::utils::constants::JWT_COOKIE_NAME;
 use crate::helpers::{get_random_email, TestApp};
 
@@ -47,6 +48,12 @@ async fn should_return_200_if_valid_jwt_cookie() {
         .expect("Auth cookie not found");
 
     assert!(cookie.value().is_empty());
+
+    let banned_token_store =
+        app.banned_token_store.read().await;
+
+    assert_eq!(banned_token_store.validate_token(token.to_string()).await,
+               Err(BannedTokenStoreError::BannedToken));
 }
 
 #[tokio::test]
