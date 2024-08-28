@@ -1,6 +1,6 @@
 mod user;
 mod error;
-mod data_stores;
+pub(crate) mod data_stores;
 pub(crate) mod email;
 mod password;
 

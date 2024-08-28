@@ -10,6 +10,7 @@ use routes::{login, logout, signup, verify_2fa, verify_token};
 pub use app_state::AppState;
 pub use services::HashmapUserStore;
 pub use services::HashsetBannedTokenStore;
+pub use services::HashmapTwoFACodeStore;
 
 pub mod app_state;
 pub mod domain;
