@@ -10,10 +10,11 @@ use tower_http::cors::CorsLayer;
 use routes::{login, logout, signup, verify_2fa, verify_token};
 
 pub use app_state::AppState;
-pub use services::HashmapUserStore;
-pub use services::HashsetBannedTokenStore;
-pub use services::HashmapTwoFACodeStore;
-pub use services::MockEmailClient;
+pub use services::data_stores::HashmapUserStore;
+pub use services::data_stores::PostgresUserStore;
+pub use services::data_stores::HashsetBannedTokenStore;
+pub use services::data_stores::HashmapTwoFACodeStore;
+pub use services::data_stores::MockEmailClient;
 
 pub mod app_state;
 pub mod domain;

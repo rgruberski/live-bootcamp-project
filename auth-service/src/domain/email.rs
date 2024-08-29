@@ -1,4 +1,6 @@
-use super::UserStoreError;
+use std::fmt;
+use std::fmt::{Display, Formatter};
+use super::{UserStoreError};
 
 use validator::validate_email;
 
@@ -17,6 +19,12 @@ impl Email {
 impl AsRef<str> for Email {
     fn as_ref(&self) -> &str {
         &self.0
+    }
+}
+
+impl Display for Email {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
