@@ -24,7 +24,7 @@ impl TwoFACodeStore for HashmapTwoFACodeStore {
         -> Result<(), TwoFACodeStoreError> {
         self.codes
             .remove(email)
-            .map(|user| ())
+            .map(|_| ())
             .ok_or(TwoFACodeStoreError::LoginAttemptIdNotFound)
     }
 

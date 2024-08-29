@@ -29,7 +29,7 @@ impl BannedTokenStore for HashsetBannedTokenStore {
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::{BannedTokenStoreError, UserStoreError};
+    use crate::domain::{BannedTokenStoreError};
     use super::*;
 
     #[tokio::test]

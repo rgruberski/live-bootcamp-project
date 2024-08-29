@@ -63,7 +63,7 @@ pub async fn validate_token(
 ) -> Result<Claims, jsonwebtoken::errors::Error> {
 
     match banned_token_store.read().await.validate_token(token.to_string()).await {
-        Ok(claims) => decode::<Claims>(
+        Ok(_) => decode::<Claims>(
             token,
             &DecodingKey::from_secret(JWT_SECRET.as_bytes()),
             &Validation::default(),
