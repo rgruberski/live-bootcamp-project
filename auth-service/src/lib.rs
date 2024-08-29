@@ -11,6 +11,7 @@ pub use app_state::AppState;
 pub use services::HashmapUserStore;
 pub use services::HashsetBannedTokenStore;
 pub use services::HashmapTwoFACodeStore;
+pub use services::MockEmailClient;
 
 pub mod app_state;
 pub mod domain;

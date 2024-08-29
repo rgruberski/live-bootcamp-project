@@ -1,7 +1,7 @@
 use uuid::Uuid;
 use std::sync::Arc;
 use reqwest::cookie::Jar;
-use auth_service::{Application, AppState, HashmapUserStore, HashsetBannedTokenStore, HashmapTwoFACodeStore};
+use auth_service::{Application, AppState, HashmapUserStore, HashsetBannedTokenStore, HashmapTwoFACodeStore, MockEmailClient};
 use tokio::sync::RwLock;
 use auth_service::app_state::{BannedTokenStoreType, TwoFACodeStoreType};
 use auth_service::utils::constants::test;
@@ -26,8 +26,11 @@ impl TestApp {
         let two_fa_code_store =
             Arc::new(RwLock::new(HashmapTwoFACodeStore::default()));
 
+        let email_client =
+            Arc::new(MockEmailClient);
+
         let app_state = AppState::new(user_store, banned_token_store.clone(),
-                                      two_fa_code_store.clone());
+                                      two_fa_code_store.clone(), email_client.clone());
 
         let app = Application::build(app_state, test::APP_ADDRESS)
             .await
