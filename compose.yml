@@ -19,7 +19,7 @@ services:
     restart: "always" # automatically restart container when server crashes
     environment:
       JWT_SECRET: ${JWT_SECRET}
-      DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@db:5432"
+      DATABASE_URL: ${DATABASE_URL}
     expose:
       - 3000
     networks:
@@ -29,6 +29,7 @@ services:
 
   db:
     image: postgres:15.2-alpine
+    hostname: db
     restart: always
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -36,6 +37,8 @@ services:
       - "5432:5432"
     volumes:
       - db:/var/lib/postgresql/data
+    networks:
+      - rust-network
 
   webserver:
     image: nginx:mainline-alpine
