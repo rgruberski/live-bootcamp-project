@@ -4,8 +4,9 @@ use std::sync::Arc;
 use reqwest::cookie::Jar;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use auth_service::{Application, AppState, HashmapTwoFACodeStore, MockEmailClient, get_postgres_pool,
-                   PostgresUserStore, RedisBannedTokenStore, get_redis_client};
+use auth_service::{Application, AppState, MockEmailClient, get_postgres_pool,
+                   PostgresUserStore, RedisBannedTokenStore, get_redis_client,
+                   RedisTwoFACodeStore};
 use tokio::sync::RwLock;
 use auth_service::app_state::{BannedTokenStoreType, TwoFACodeStoreType};
 use auth_service::utils::constants::{test, DATABASE_URL, REDIS_HOST_NAME};
@@ -40,8 +41,11 @@ impl TestApp {
         let banned_token_store =
             Arc::new(RwLock::new(RedisBannedTokenStore::new(redis_conn.clone())));
 
+        // let two_fa_code_store =
+        //     Arc::new(RwLock::new(HashmapTwoFACodeStore::default()));
+
         let two_fa_code_store =
-            Arc::new(RwLock::new(HashmapTwoFACodeStore::default()));
+            Arc::new(RwLock::new(RedisTwoFACodeStore::new(redis_conn)));
 
         let email_client =
             Arc::new(MockEmailClient);

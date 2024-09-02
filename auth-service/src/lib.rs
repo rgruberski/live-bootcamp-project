@@ -17,6 +17,7 @@ pub use services::data_stores::HashsetBannedTokenStore;
 pub use services::data_stores::HashmapTwoFACodeStore;
 pub use services::data_stores::MockEmailClient;
 pub use services::data_stores::RedisBannedTokenStore;
+pub use services::data_stores::RedisTwoFACodeStore;
 
 pub mod app_state;
 pub mod domain;
