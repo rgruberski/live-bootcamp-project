@@ -1,10 +1,10 @@
 use std::sync::Arc;
 use sqlx::{Executor, PgPool};
 use sqlx::postgres::PgPoolOptions;
-use auth_service::{Application, AppState, HashsetBannedTokenStore, HashmapTwoFACodeStore, MockEmailClient, get_postgres_pool, PostgresUserStore};
+use auth_service::{Application, AppState, HashmapTwoFACodeStore, MockEmailClient, get_postgres_pool, PostgresUserStore, get_redis_client, RedisBannedTokenStore};
 use tokio::sync::RwLock;
 use uuid::Uuid;
-use auth_service::utils::constants::{prod, DATABASE_URL};
+use auth_service::utils::constants::{prod, DATABASE_URL, REDIS_HOST_NAME};
 
 #[tokio::main]
 async fn main() {
@@ -12,15 +12,19 @@ async fn main() {
     let pg_pool = configure_postgresql().await;
 
     // let user_store = Arc::new(RwLock::new(HashmapUserStore::default()));
-    let user_store = Arc::new(RwLock::new(PostgresUserStore::new(pg_pool)));
-    let banner_token_store =
-        Arc::new(RwLock::new(HashsetBannedTokenStore::default()));
+    let user_store =
+        Arc::new(RwLock::new(PostgresUserStore::new(pg_pool)));
+    let redis_conn = Arc::new(RwLock::new(configure_redis()));
+    // let banned_token_store =
+    //     Arc::new(RwLock::new(HashsetBannedTokenStore::default()));
+    let banned_token_store =
+        Arc::new(RwLock::new(RedisBannedTokenStore::new(redis_conn.clone())));
     let two_fa_code_store =
         Arc::new(RwLock::new(HashmapTwoFACodeStore::default()));
     let email_client =
         Arc::new(MockEmailClient);
 
-    let app_state = AppState::new(user_store, banner_token_store, two_fa_code_store,
+    let app_state = AppState::new(user_store, banned_token_store, two_fa_code_store,
                                   email_client);
 
     let app = Application::build(app_state, prod::APP_ADDRESS)
@@ -72,4 +76,11 @@ async fn configure_database(db_conn_string: &str, db_name: &str) {
         .run(&connection)
         .await
         .expect("Failed to migrate the database");
+}
+
+fn configure_redis() -> redis::Connection {
+    get_redis_client(REDIS_HOST_NAME.to_owned())
+        .expect("Failed to get Redis client")
+        .get_connection()
+        .expect("Failed to get Redis connection")
 }

@@ -22,6 +22,7 @@ dotenvy = "0.15.7"
 lazy_static = "1.4.0"
 rand = "0.8.5"
 sqlx = { version = "0.8", features = [ "runtime-tokio-rustls", "postgres", "migrate"] }
+redis = { version = "0.25.2", features = ["tokio-comp"] }
 test_helpers = { git = "https://github.com/letsgetrusty/test-helpers.git" }
 
 [dev-dependencies]

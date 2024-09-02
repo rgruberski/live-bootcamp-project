@@ -40,6 +40,15 @@ services:
     networks:
       - rust-network
 
+  redis:
+    image: redis:7.0-alpine
+    hostname: redis
+    restart: always
+    expose:
+      - 6379
+    ports:
+      - "6379:6379"
+
   webserver:
     image: nginx:mainline-alpine
     container_name: webserver

@@ -57,21 +57,61 @@ fn generate_auth_token(email: &Email) -> Result<String, GenerateTokenError> {
 }
 
 // Check if JWT auth token is valid by decoding it using the JWT secret
+// pub async fn validate_token(
+//     token: &str,
+//     banned_token_store: BannedTokenStoreType
+// ) -> Result<Claims, jsonwebtoken::errors::Error> {
+//
+//     // match banned_token_store.read().await.contains_token(token).await {
+//     //     Ok(_) => decode::<Claims>(
+//     //         token,
+//     //         &DecodingKey::from_secret(JWT_SECRET.as_bytes()),
+//     //         &Validation::default(),
+//     //     ).map(|data| data.claims),
+//     //     Err(_) => Err(jsonwebtoken::errors::Error::from(
+//     //         jsonwebtoken::errors::ErrorKind::InvalidToken,
+//     //     ))
+//     // }
+//
+//     match banned_token_store.read().await.contains_token(token).await {
+//         Ok(_) => return Err(jsonwebtoken::errors::Error::from(
+//             jsonwebtoken::errors::ErrorKind::InvalidToken,
+//         )),
+//         Err(_) => {}
+//     };
+//
+//     decode::<Claims>(
+//             token,
+//             &DecodingKey::from_secret(JWT_SECRET.as_bytes()),
+//             &Validation::default(),
+//         ).map(|data| data.claims)
+// }
+
 pub async fn validate_token(
     token: &str,
-    banned_token_store: BannedTokenStoreType
+    banned_token_store: BannedTokenStoreType,
 ) -> Result<Claims, jsonwebtoken::errors::Error> {
-
-    match banned_token_store.read().await.validate_token(token.to_string()).await {
-        Ok(_) => decode::<Claims>(
-            token,
-            &DecodingKey::from_secret(JWT_SECRET.as_bytes()),
-            &Validation::default(),
-        ).map(|data| data.claims),
-        Err(_) => Err(jsonwebtoken::errors::Error::from(
-            jsonwebtoken::errors::ErrorKind::InvalidToken,
-        ))
+    match banned_token_store.read().await.contains_token(token).await {
+        Ok(value) => {
+            if value {
+                return Err(jsonwebtoken::errors::Error::from(
+                    jsonwebtoken::errors::ErrorKind::InvalidToken,
+                ));
+            }
+        }
+        Err(_) => {
+            return Err(jsonwebtoken::errors::Error::from(
+                jsonwebtoken::errors::ErrorKind::InvalidToken,
+            ));
+        }
     }
+
+    decode::<Claims>(
+        token,
+        &DecodingKey::from_secret(JWT_SECRET.as_bytes()),
+        &Validation::default(),
+    )
+        .map(|data| data.claims)
 }
 
 // Create JWT auth token by encoding claims using the JWT secret

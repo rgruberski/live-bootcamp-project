@@ -4,10 +4,11 @@ use std::sync::Arc;
 use reqwest::cookie::Jar;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use auth_service::{Application, AppState, HashsetBannedTokenStore, HashmapTwoFACodeStore, MockEmailClient, get_postgres_pool, PostgresUserStore};
+use auth_service::{Application, AppState, HashmapTwoFACodeStore, MockEmailClient, get_postgres_pool,
+                   PostgresUserStore, RedisBannedTokenStore, get_redis_client};
 use tokio::sync::RwLock;
 use auth_service::app_state::{BannedTokenStoreType, TwoFACodeStoreType};
-use auth_service::utils::constants::{test, DATABASE_URL};
+use auth_service::utils::constants::{test, DATABASE_URL, REDIS_HOST_NAME};
 
 pub struct TestApp {
     pub address: String,
@@ -25,14 +26,19 @@ impl TestApp {
         let db_name = Uuid::new_v4().to_string();
         let pg_pool = configure_postgresql(&db_name).await;
 
+        let redis_conn = Arc::new(RwLock::new(configure_redis()));
+
         // let user_store =
         //     Arc::new(RwLock::new(HashmapUserStore::default()));
 
         let user_store =
             Arc::new(RwLock::new(PostgresUserStore::new(pg_pool)));
 
+        // let banned_token_store =
+        //     Arc::new(RwLock::new(HashsetBannedTokenStore::default()));
+
         let banned_token_store =
-            Arc::new(RwLock::new(HashsetBannedTokenStore::default()));
+            Arc::new(RwLock::new(RedisBannedTokenStore::new(redis_conn.clone())));
 
         let two_fa_code_store =
             Arc::new(RwLock::new(HashmapTwoFACodeStore::default()));
@@ -224,4 +230,11 @@ async fn delete_database(db_name: &str) {
         .execute(format!(r#"DROP DATABASE "{}";"#, db_name).as_str())
         .await
         .expect("Failed to drop the database.");
+}
+
+fn configure_redis() -> redis::Connection {
+    get_redis_client(REDIS_HOST_NAME.to_owned())
+        .expect("Failed to get Redis client")
+        .get_connection()
+        .expect("Failed to get Redis connection")
 }

@@ -3,6 +3,7 @@ use domain::AuthAPIError;
 use tower_http::services::ServeDir;
 use std::error::Error;
 use axum::http::Method;
+use redis::{Client, RedisResult};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
@@ -15,6 +16,7 @@ pub use services::data_stores::PostgresUserStore;
 pub use services::data_stores::HashsetBannedTokenStore;
 pub use services::data_stores::HashmapTwoFACodeStore;
 pub use services::data_stores::MockEmailClient;
+pub use services::data_stores::RedisBannedTokenStore;
 
 pub mod app_state;
 pub mod domain;
@@ -97,4 +99,9 @@ impl IntoResponse for AuthAPIError {
 pub async fn get_postgres_pool(url: &str) -> Result<PgPool, sqlx::Error> {
     // Create a new PostgresSQL connection pool
     PgPoolOptions::new().max_connections(5).connect(url).await
+}
+
+pub fn get_redis_client(redis_hostname: String) -> RedisResult<Client> {
+    let redis_url = format!("redis://{}/", redis_hostname);
+    redis::Client::open(redis_url)
 }
