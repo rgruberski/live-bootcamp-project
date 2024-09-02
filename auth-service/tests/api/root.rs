@@ -1,7 +1,9 @@
+use macros::api_test;
+
 use crate::helpers::TestApp;
 
-// Tokio's test macro is use to run the test in an async environment
-#[tokio::test]
+// Tokio's test macro is used to run the test in an async environment
+#[api_test]
 async fn root_returns_auth_ui() {
     let app = TestApp::new().await;
 

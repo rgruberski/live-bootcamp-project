@@ -1,8 +1,9 @@
+use macros::api_test;
 use crate::helpers::{get_random_email, TestApp};
 
 use auth_service::{routes::SignupResponse, ErrorResponse};
 
-#[tokio::test]
+#[api_test]
 async fn should_return_422_if_malformed_input() {
     let app = TestApp::new().await;
 
@@ -34,7 +35,7 @@ async fn should_return_422_if_malformed_input() {
     }
 }
 
-#[tokio::test]
+#[api_test]
 async fn should_return_201_if_valid_input() {
     
     let app = TestApp::new().await;
@@ -65,7 +66,7 @@ async fn should_return_201_if_valid_input() {
     );
 }
 
-#[tokio::test]
+#[api_test]
 async fn should_return_400_if_invalid_input() {
     // The signup route should return a 400 HTTP status code if an invalid input is sent.
     // The input is considered invalid if:
@@ -113,7 +114,7 @@ async fn should_return_400_if_invalid_input() {
     }
 }
 
-#[tokio::test]
+#[api_test]
 async fn should_return_409_if_email_already_exists() {
     // Call the signup route twice. The second request should fail with a 409 HTTP status code    
     

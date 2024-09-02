@@ -32,7 +32,7 @@ impl UserStore for PostgresUserStore {
             Err(_) => return Err(UserStoreError::UnexpectedError)
         };
 
-        match sqlx::query!(
+        sqlx::query!(
             r#"
             INSERT INTO users (email, password_hash, requires_2fa)
             VALUES ($1, $2, $3)
@@ -42,10 +42,16 @@ impl UserStore for PostgresUserStore {
             &user.requires_2fa
         )
             .execute(&self.pool)
-            .await {
-            Ok(_) => Ok(()),
-            Err(_) => Err(UserStoreError::UnexpectedError)
-        }
+            .await
+            .map_err(|e| {
+                print!("Error: {:?}", &e);
+                match e.into_database_error().unwrap().is_unique_violation() {
+                    true => UserStoreError::UserAlreadyExists,
+                    false => UserStoreError::UnexpectedError,
+                }
+            })?;
+
+        Ok(())
     }
 
     async fn get_user(&self, email: &Email) -> Result<User, UserStoreError> {
@@ -54,7 +60,7 @@ impl UserStore for PostgresUserStore {
             .bind(email.as_ref())
             .map(|row: PgRow| Ok(User {
                 email: Email::parse(row.get("email")).unwrap(),
-                password: Password::parse(row.get("password")).unwrap(),
+                password: Password::parse(row.get("password_hash")).unwrap(),
                 requires_2fa: row.get("requires_2fa"),
             }))
             .fetch_optional(&self.pool)

@@ -3,7 +3,9 @@ use auth_service::routes::TwoFactorAuthResponse;
 use auth_service::utils::constants::JWT_COOKIE_NAME;
 use crate::helpers::{get_random_email, TestApp};
 
-#[tokio::test]
+use macros::api_test;
+
+#[api_test]
 async fn should_return_422_if_malformed_credentials() {
 
     let app = TestApp::new().await;
@@ -17,7 +19,7 @@ async fn should_return_422_if_malformed_credentials() {
     assert_eq!(response.status().as_u16(), 422);
 }
 
-#[tokio::test]
+#[api_test]
 async fn should_return_400_if_invalid_input() {
     // Call the log-in route with invalid credentials and assert that a
     // 400 HTTP status code is returned along with the appropriate error message.
@@ -42,7 +44,7 @@ async fn should_return_400_if_invalid_input() {
     }
 }
 
-#[tokio::test]
+#[api_test]
 async fn should_return_401_if_incorrect_credentials() {
     // Call the log-in route with incorrect credentials and assert
     // that a 401 HTTP status code is returned along with the appropriate error message.
@@ -59,7 +61,7 @@ async fn should_return_401_if_incorrect_credentials() {
     assert_eq!(response.status().as_u16(), 401);
 }
 
-#[tokio::test]
+#[api_test]
 async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
 
     let app = TestApp::new().await;
@@ -93,7 +95,7 @@ async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
     assert!(!auth_cookie.value().is_empty());
 }
 
-#[tokio::test]
+#[api_test]
 async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
 
     let app = TestApp::new().await;
