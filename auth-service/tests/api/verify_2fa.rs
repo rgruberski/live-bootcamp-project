@@ -1,4 +1,4 @@
-use macros::api_test;
+use test_helpers::api_test;
 use auth_service::domain::{Email, LoginAttemptId, TwoFACode};
 use auth_service::routes::TwoFactorAuthResponse;
 use auth_service::utils::constants::JWT_COOKIE_NAME;

@@ -3,7 +3,7 @@ use auth_service::routes::TwoFactorAuthResponse;
 use auth_service::utils::constants::JWT_COOKIE_NAME;
 use crate::helpers::{get_random_email, TestApp};
 
-use macros::api_test;
+use test_helpers::api_test;
 
 #[api_test]
 async fn should_return_422_if_malformed_credentials() {

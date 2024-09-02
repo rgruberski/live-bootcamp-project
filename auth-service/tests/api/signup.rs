@@ -1,4 +1,4 @@
-use macros::api_test;
+use test_helpers::api_test;
 use crate::helpers::{get_random_email, TestApp};
 
 use auth_service::{routes::SignupResponse, ErrorResponse};
