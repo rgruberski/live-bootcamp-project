@@ -1,19 +1,18 @@
-use std::error::Error;
 // use std::future::Future;
 use argon2::{
     password_hash::SaltString, Algorithm, Argon2, Params, PasswordHash, PasswordHasher,
     PasswordVerifier, Version,
 };
 
-use sqlx::{PgPool, Row};
-use sqlx::postgres::PgRow;
 // use sqlx::postgres::PgRow;
 use crate::domain::{
     data_stores::{UserStore, UserStoreError},
     Email, Password, User,
 };
+use sqlx::postgres::PgRow;
+use sqlx::{PgPool, Row};
 
-use color_eyre::eyre::{eyre, Context, Result};
+use color_eyre::eyre::{eyre, Result};
 
 pub struct PostgresUserStore {
     pool: PgPool,

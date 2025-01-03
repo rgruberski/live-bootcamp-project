@@ -6,6 +6,11 @@ use crate::AppState;
 use crate::domain::{AuthAPIError, Email, LoginAttemptId, Password, TwoFACode, UserStoreError};
 use crate::utils::auth;
 
+use crate::{
+    utils::auth::generate_auth_cookie,
+};
+
+#[tracing::instrument(name = "Login", skip_all)]
 pub async fn login(State(state): State<AppState>, jar: CookieJar, Json(request): Json<LoginRequest>)
                    -> (CookieJar, Result<impl IntoResponse, AuthAPIError>) {
 
@@ -44,12 +49,13 @@ pub async fn login(State(state): State<AppState>, jar: CookieJar, Json(request):
 
     match user.requires_2fa {
         true => handle_2fa(&user.email, &state, updated_jar).await,
-        false => handle_no_2fa(updated_jar).await,
+        false => handle_no_2fa(&user.email, updated_jar).await,
     }
 
     /*(updated_jar, Ok(StatusCode::OK.into_response()))*/
 }
 
+#[tracing::instrument(name = "Handle 2FA", skip_all)]
 async fn handle_2fa(
     email: &Email,
     state: &AppState,
@@ -64,13 +70,23 @@ async fn handle_2fa(
     let login_attempt_id = LoginAttemptId::default();
     let two_fa_code = TwoFACode::default();
 
-    match state.two_fa_code_store.write().await.add_code(
+    /*match state.two_fa_code_store.write().await.add_code(
         email.clone(),
         login_attempt_id.clone(),
         two_fa_code.clone(),
     ).await {
         Ok(_) => (),
         Err(e) => return (jar, Err(AuthAPIError::UnexpectedError(e.into()))),
+    }*/
+
+    if let Err(e) = state
+        .two_fa_code_store
+        .write()
+        .await
+        .add_code(email.clone(), login_attempt_id.clone(), two_fa_code.clone())
+        .await
+    {
+        return (jar, Err(AuthAPIError::UnexpectedError(e.into())));
     }
 
     match state.email_client.send_email(
@@ -90,16 +106,25 @@ async fn handle_2fa(
     (jar, Ok((StatusCode::PARTIAL_CONTENT, response)))
 }
 
+#[tracing::instrument(name = "Handle No 2FA", skip_all)]
 async fn handle_no_2fa(
+    email: &Email,
     jar: CookieJar,
 ) -> (
     CookieJar,
     Result<(StatusCode, Json<LoginResponse>), AuthAPIError>,
 ) {
+    let auth_cookie = match generate_auth_cookie(email) {
+        Ok(cookie) => cookie,
+        Err(e) => return (jar, Err(AuthAPIError::UnexpectedError(e))), // Updated!
+    };
 
-    let response = (StatusCode::OK, Json(LoginResponse::RegularAuth));
+    let updated_jar = jar.add(auth_cookie);
 
-    (jar, Ok(response))
+    (
+        updated_jar,
+        Ok((StatusCode::OK, Json(LoginResponse::RegularAuth))),
+    )
 }
 
 #[derive(Deserialize)]

@@ -1,6 +1,5 @@
 use std::fmt;
 use std::fmt::{Display, Formatter};
-use super::{UserStoreError};
 
 use color_eyre::eyre::{eyre, Result};
 

@@ -6,6 +6,7 @@ use crate::domain::AuthAPIError;
 use crate::utils::auth;
 use crate::utils::constants::JWT_COOKIE_NAME;
 
+#[tracing::instrument(name = "Logout", skip_all)]
 pub async fn logout(State(state): State<AppState>, jar: CookieJar)
     -> (CookieJar, Result<impl IntoResponse, AuthAPIError>) {
 

@@ -21,6 +21,7 @@ impl RedisBannedTokenStore {
 
 #[async_trait::async_trait]
 impl BannedTokenStore for RedisBannedTokenStore {
+    #[tracing::instrument(name = "Storing banned JWT token in Redis", skip_all)]
     async fn add_token(&mut self, token: String) -> Result<(), BannedTokenStoreError> {
         // TODO:
         // 1. Create a new key using the get_key helper function.
@@ -43,6 +44,7 @@ impl BannedTokenStore for RedisBannedTokenStore {
         Ok(())
     }
 
+    #[tracing::instrument(name = "Checking for banned JWT token in Redis", skip_all)]
     async fn contains_token(&self, token: &str) -> Result<bool, BannedTokenStoreError> {
         // Check if the token exists by calling the exists method on the Redis connection
 
