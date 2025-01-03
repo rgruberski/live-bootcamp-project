@@ -20,12 +20,14 @@ services:
     environment:
       JWT_SECRET: ${JWT_SECRET}
       DATABASE_URL: ${DATABASE_URL}
+      REDIS_HOST_NAME: ${REDIS_HOST_NAME}
     expose:
       - 3000
     networks:
       - rust-network
     depends_on:
       - db
+      - redis
 
   db:
     image: postgres:15.2-alpine
@@ -48,6 +50,8 @@ services:
       - 6379
     ports:
       - "6379:6379"
+    networks:
+      - rust-network
 
   webserver:
     image: nginx:mainline-alpine
