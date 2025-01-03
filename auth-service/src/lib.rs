@@ -1,21 +1,29 @@
-use axum::{http::StatusCode, response::{IntoResponse, Response}, routing::post, serve::Serve, Json, Router};
-use domain::AuthAPIError;
-use tower_http::services::ServeDir;
-use std::error::Error;
 use axum::http::Method;
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    routing::post,
+    serve::Serve,
+    Json, Router,
+};
+use domain::AuthAPIError;
 use redis::{Client, RedisResult};
-use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
-use sqlx::postgres::PgPoolOptions;
-use tower_http::cors::CorsLayer;
 use routes::{login, logout, signup, verify_2fa, verify_token};
+use serde::{Deserialize, Serialize};
+use sqlx::postgres::PgPoolOptions;
+use sqlx::PgPool;
+use std::error::Error;
+use tower_http::cors::CorsLayer;
+use tower_http::services::ServeDir;
+use tower_http::trace::TraceLayer;
 
+use crate::utils::tracing::{make_span_with_request_id, on_request, on_response};
 pub use app_state::AppState;
-pub use services::data_stores::HashmapUserStore;
-pub use services::data_stores::PostgresUserStore;
-pub use services::data_stores::HashsetBannedTokenStore;
 pub use services::data_stores::HashmapTwoFACodeStore;
+pub use services::data_stores::HashmapUserStore;
+pub use services::data_stores::HashsetBannedTokenStore;
 pub use services::data_stores::MockEmailClient;
+pub use services::data_stores::PostgresUserStore;
 pub use services::data_stores::RedisBannedTokenStore;
 pub use services::data_stores::RedisTwoFACodeStore;
 
@@ -35,7 +43,6 @@ pub struct Application {
 
 impl Application {
     pub async fn build(app_state: AppState, address: &str) -> Result<Self, Box<dyn Error>> {
-
         // Allow the app service(running on our local machine and in production) to call the auth service
         let allowed_origins = [
             "http://localhost:8000".parse()?,
@@ -51,24 +58,31 @@ impl Application {
             .allow_origin(allowed_origins);
 
         let router = Router::new()
-        .nest_service("/", ServeDir::new("assets"))
-        .route("/signup", post(signup))
-        .route("/login", post(login))
-        .route("/logout", post(logout))
-        .route("/verify-2fa", post(verify_2fa))
-        .route("/verify-token", post(verify_token))
-        .with_state(app_state)
-        .layer(cors);
+            .nest_service("/", ServeDir::new("assets"))
+            .route("/signup", post(signup))
+            .route("/login", post(login))
+            .route("/logout", post(logout))
+            .route("/verify-2fa", post(verify_2fa))
+            .route("/verify-token", post(verify_token))
+            .with_state(app_state)
+            .layer(cors)
+            .layer(
+                TraceLayer::new_for_http()
+                    .make_span_with(make_span_with_request_id)
+                    .on_request(on_request)
+                    .on_response(on_response),
+            );
 
         let listener = tokio::net::TcpListener::bind(address).await?;
         let address = listener.local_addr()?.to_string();
         let server = axum::serve(listener, router);
 
-        Ok(Application {address, server})
+        Ok(Application { address, server })
     }
 
     pub async fn run(self) -> Result<(), std::io::Error> {
-        println!("listening on {}", &self.address);
+        // println!("listening on {}", &self.address);
+        tracing::info!("listening on {}", &self.address);
         self.server.await
     }
 }
@@ -83,7 +97,9 @@ impl IntoResponse for AuthAPIError {
         let (status, error_message) = match self {
             AuthAPIError::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists"),
             AuthAPIError::InvalidCredentials => (StatusCode::BAD_REQUEST, "Invalid credentials"),
-            AuthAPIError::IncorrectCredentials => (StatusCode::UNAUTHORIZED, "Incorrect credentials"),
+            AuthAPIError::IncorrectCredentials => {
+                (StatusCode::UNAUTHORIZED, "Incorrect credentials")
+            }
             AuthAPIError::MissingToken => (StatusCode::BAD_REQUEST, "Invalid credentials"),
             AuthAPIError::InvalidToken => (StatusCode::UNAUTHORIZED, "Invalid credentials"),
             AuthAPIError::UnexpectedError => {

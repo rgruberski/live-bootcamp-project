@@ -25,6 +25,7 @@ impl PostgresUserStore {
 
 #[async_trait::async_trait]
 impl UserStore for PostgresUserStore {
+    #[tracing::instrument(name = "Adding user to PostgreSQL", skip_all)]
     async fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
 
         let password_hash = match compute_password_hash(user.password.as_ref()) {
@@ -53,7 +54,8 @@ impl UserStore for PostgresUserStore {
 
         Ok(())
     }
-
+    
+    #[tracing::instrument(name = "Retrieving user from PostgreSQL", skip_all)]
     async fn get_user(&self, email: &Email) -> Result<User, UserStoreError> {
 
         sqlx::query("SELECT * FROM users WHERE email = $1")
@@ -68,6 +70,7 @@ impl UserStore for PostgresUserStore {
             .unwrap().ok_or(UserStoreError::UserNotFound)?
     }
 
+    #[tracing::instrument(name = "Validating user credentials in PostgreSQL", skip_all)]
     async fn validate_user(&self, email: &Email, password: &Password) -> Result<(), UserStoreError> {
         let user = self.get_user(email).await?;
 
@@ -84,6 +87,7 @@ impl UserStore for PostgresUserStore {
 // other async tasks, update this function to perform hashing on a
 // separate thread pool using tokio::task::spawn_blocking. Note that you
 // will need to update the input parameters to be String types instead of &str
+#[tracing::instrument(name = "Verify password hash", skip_all)]
 fn verify_password_hash(
     expected_password_hash: &str,
     password_candidate: &str,
@@ -100,6 +104,7 @@ fn verify_password_hash(
 // other async tasks, update this function to perform hashing on a
 // separate thread pool using tokio::task::spawn_blocking. Note that you
 // will need to update the input parameters to be String types instead of &str
+#[tracing::instrument(name = "Computing password hash", skip_all)]
 fn compute_password_hash(password: &str) -> Result<String, Box<dyn Error>> {
     let salt: SaltString = SaltString::generate(&mut rand::thread_rng());
     let password_hash = Argon2::new(

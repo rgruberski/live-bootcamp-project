@@ -4,11 +4,13 @@ use sqlx::postgres::PgPoolOptions;
 use auth_service::{Application, AppState, MockEmailClient, get_postgres_pool, PostgresUserStore, get_redis_client, RedisBannedTokenStore, RedisTwoFACodeStore};
 use tokio::sync::RwLock;
 use uuid::Uuid;
-use auth_service::utils::constants::{prod, DATABASE_URL, REDIS_HOST_NAME};
+use auth_service::utils::constants::{APP_ADDRESS, DATABASE_URL, REDIS_HOST_NAME};
+use auth_service::utils::tracing::init_tracing;
 
 #[tokio::main]
 async fn main() {
-
+    init_tracing();
+    
     let pg_pool = configure_postgresql().await;
 
     // let user_store = Arc::new(RwLock::new(HashmapUserStore::default()));
@@ -31,7 +33,7 @@ async fn main() {
     let app_state = AppState::new(user_store, banned_token_store, two_fa_code_store,
                                   email_client);
 
-    let app = Application::build(app_state, prod::APP_ADDRESS)
+    let app = Application::build(app_state, APP_ADDRESS.to_owned().as_str())
         .await
         .expect("Failed to build app");
 
