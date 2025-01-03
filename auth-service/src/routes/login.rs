@@ -26,18 +26,18 @@ pub async fn login(State(state): State<AppState>, jar: CookieJar, Json(request):
         Err(UserStoreError::InvalidCredentials) =>
             return (jar, Err(AuthAPIError::IncorrectCredentials)),
         Err(UserStoreError::UserNotFound) => return (jar, Err(AuthAPIError::IncorrectCredentials)),
-        Err(_) => return (jar, Err(AuthAPIError::UnexpectedError)),
+        Err(_) => return (jar, Err(AuthAPIError::IncorrectCredentials)),
     }
 
     let user = match user_store.get_user(&email).await {
         Ok(user) => user,
         Err(UserStoreError::UserNotFound) => return (jar, Err(AuthAPIError::IncorrectCredentials)),
-        Err(_) => return (jar, Err(AuthAPIError::UnexpectedError))
+        Err(_) => return (jar, Err(AuthAPIError::IncorrectCredentials))
     };
 
     let auth_cookie = match auth::generate_auth_cookie(&user.email) {
         Ok(auth_cookie) => auth_cookie,
-        Err(_) => return (jar, Err(AuthAPIError::UnexpectedError))
+        Err(_) => return (jar, Err(AuthAPIError::IncorrectCredentials))
     };
 
     let updated_jar = jar.add(auth_cookie);
@@ -70,7 +70,7 @@ async fn handle_2fa(
         two_fa_code.clone(),
     ).await {
         Ok(_) => (),
-        _ => return (jar, Err(AuthAPIError::UnexpectedError)),
+        Err(e) => return (jar, Err(AuthAPIError::UnexpectedError(e.into()))),
     }
 
     match state.email_client.send_email(
@@ -79,7 +79,7 @@ async fn handle_2fa(
         two_fa_code.as_ref(),
     ).await {
         Ok(_) => (),
-        Err(_) => return (jar, Err(AuthAPIError::UnexpectedError)),
+        Err(e) => return (jar, Err(AuthAPIError::UnexpectedError(e))),
     }
 
     let response = Json(LoginResponse::TwoFactorAuth(TwoFactorAuthResponse {

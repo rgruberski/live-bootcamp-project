@@ -32,7 +32,7 @@ pub async fn verify_2fa(
     let user = match state.user_store.read().await.get_user(&email).await {
         Ok(user) => user,
         Err(UserStoreError::UserNotFound) => return Err(AuthAPIError::IncorrectCredentials),
-        Err(_) => return Err(AuthAPIError::UnexpectedError),
+        Err(e) => return Err(AuthAPIError::UnexpectedError(e.into())),
     };
 
     let code_tuple = two_fa_code_store.get_code(&email).await;

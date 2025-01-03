@@ -13,6 +13,8 @@ use crate::domain::{
     Email, Password, User,
 };
 
+use color_eyre::eyre::{eyre, Context, Result};
+
 pub struct PostgresUserStore {
     pool: PgPool,
 }
@@ -28,10 +30,13 @@ impl UserStore for PostgresUserStore {
     #[tracing::instrument(name = "Adding user to PostgreSQL", skip_all)]
     async fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
 
-        let password_hash = match compute_password_hash(user.password.as_ref()) {
+        /*let password_hash = match compute_password_hash(user.password.as_ref()) {
             Ok(password_hash) => password_hash,
             Err(_) => return Err(UserStoreError::UnexpectedError)
-        };
+        };*/
+
+        let password_hash = compute_password_hash(user.password.as_ref())
+            .map_err(UserStoreError::UnexpectedError)?;
 
         sqlx::query!(
             r#"
@@ -44,25 +49,31 @@ impl UserStore for PostgresUserStore {
         )
             .execute(&self.pool)
             .await
-            .map_err(|e| {
+            .map_err(|e| UserStoreError::UnexpectedError(e.into()))?;
+        
+            /*.map_err(|e| {
                 print!("Error: {:?}", &e);
                 match e.into_database_error().unwrap().is_unique_violation() {
                     true => UserStoreError::UserAlreadyExists,
                     false => UserStoreError::UnexpectedError,
                 }
-            })?;
+            })?;*/
 
         Ok(())
     }
-    
+
     #[tracing::instrument(name = "Retrieving user from PostgreSQL", skip_all)]
     async fn get_user(&self, email: &Email) -> Result<User, UserStoreError> {
 
         sqlx::query("SELECT * FROM users WHERE email = $1")
             .bind(email.as_ref())
             .map(|row: PgRow| Ok(User {
-                email: Email::parse(row.get("email")).unwrap(),
-                password: Password::parse(row.get("password_hash")).unwrap(),
+                // email: Email::parse(row.get("email")).unwrap(),
+                email: Email::parse(row.get("email"))
+                    .map_err(|e| UserStoreError::UnexpectedError(eyre!(e)))?,
+                // password: Password::parse(row.get("password_hash")).unwrap(),
+                password: Password::parse(row.get("password_hash"))
+                    .map_err(|e| UserStoreError::UnexpectedError(eyre!(e)))?,
                 requires_2fa: row.get("requires_2fa"),
             }))
             .fetch_optional(&self.pool)
@@ -91,9 +102,9 @@ impl UserStore for PostgresUserStore {
 fn verify_password_hash(
     expected_password_hash: &str,
     password_candidate: &str,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<()/*, Box<dyn Error>*/> {
     let expected_password_hash: PasswordHash<'_> = PasswordHash::new(expected_password_hash)?;
-
+    
     Argon2::default()
         .verify_password(password_candidate.as_bytes(), &expected_password_hash)
         .map_err(|e| e.into())
@@ -105,7 +116,7 @@ fn verify_password_hash(
 // separate thread pool using tokio::task::spawn_blocking. Note that you
 // will need to update the input parameters to be String types instead of &str
 #[tracing::instrument(name = "Computing password hash", skip_all)]
-fn compute_password_hash(password: &str) -> Result<String, Box<dyn Error>> {
+fn compute_password_hash(password: &str) -> Result<String/*, Box<dyn Error>*/> {
     let salt: SaltString = SaltString::generate(&mut rand::thread_rng());
     let password_hash = Argon2::new(
         Algorithm::Argon2id,
@@ -116,4 +127,5 @@ fn compute_password_hash(password: &str) -> Result<String, Box<dyn Error>> {
         .to_string();
 
     Ok(password_hash)
+    // Err(eyre!("oh no!"))
 }

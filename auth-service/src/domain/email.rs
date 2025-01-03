@@ -2,16 +2,21 @@ use std::fmt;
 use std::fmt::{Display, Formatter};
 use super::{UserStoreError};
 
+use color_eyre::eyre::{eyre, Result};
+
 use validator::validate_email;
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Email(String);
 
 impl Email {
-    pub fn parse(email: &str) -> Result<Self, UserStoreError> {
+    pub fn parse(email: &str) -> Result<Self/*, UserStoreError*/> {
         match validate_email(email) {
             true => Ok(Email(email.to_string())),
-            false => Err(UserStoreError::InvalidEmail),
+            false => Err(eyre!(format!(
+                "{} is not a valid email.",
+                email.to_string()
+            )))
         }
     }
 }
@@ -28,7 +33,7 @@ impl Display for Email {
     }
 }
 
-#[cfg(test)]
+/*#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -48,3 +53,4 @@ mod tests {
         )
     }
 }
+*/

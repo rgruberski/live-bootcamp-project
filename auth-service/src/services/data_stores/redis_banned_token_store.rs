@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use redis::{Commands, Connection};
 use tokio::sync::RwLock;
+use color_eyre::eyre::Context;
 
 use crate::{
     domain::data_stores::{BannedTokenStore, BannedTokenStoreError},
@@ -36,7 +37,8 @@ impl BannedTokenStore for RedisBannedTokenStore {
             .write()
             .await
             .set_ex(&token_key, true, TOKEN_TTL_SECONDS.try_into().unwrap())
-            .map_err(|_| BannedTokenStoreError::UnexpectedError)?;
+            .wrap_err("failed to set banned token in Redis")
+            .map_err(BannedTokenStoreError::UnexpectedError)?;
 
         Ok(())
     }
@@ -51,7 +53,8 @@ impl BannedTokenStore for RedisBannedTokenStore {
             .write()
             .await
             .exists(&token_key)
-            .map_err(|_| BannedTokenStoreError::UnexpectedError)?;
+            .wrap_err("failed to check if token exists in Redis")
+            .map_err(BannedTokenStoreError::UnexpectedError)?;
 
         Ok(is_banned)
     }
