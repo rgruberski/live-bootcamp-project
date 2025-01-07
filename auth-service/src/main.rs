@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use secrecy::ExposeSecret;
 use sqlx::{Executor, PgPool};
 use sqlx::postgres::PgPoolOptions;
 use auth_service::{Application, AppState, MockEmailClient, get_postgres_pool, PostgresUserStore, get_redis_client, RedisBannedTokenStore, RedisTwoFACodeStore};
@@ -6,6 +7,7 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 use auth_service::utils::constants::{APP_ADDRESS, DATABASE_URL, REDIS_HOST_NAME};
 use auth_service::utils::tracing::init_tracing;
+use secrecy::{Secret};
 
 #[tokio::main]
 async fn main() {
@@ -47,9 +49,9 @@ async fn configure_postgresql() -> PgPool {
     // We are creating a new database for each test case, and we need to ensure each database has a unique name!
     let db_name = Uuid::new_v4().to_string();
 
-    configure_database(&postgresql_conn_url, &db_name).await;
+    configure_database(&postgresql_conn_url.expose_secret(), &db_name).await;
 
-    let postgresql_conn_url_with_db = format!("{}/{}", postgresql_conn_url, db_name);
+    let postgresql_conn_url_with_db = Secret::new(format!("{}/{}", postgresql_conn_url.expose_secret(), db_name));
 
     // Create a new connection pool and return it
     get_postgres_pool(&postgresql_conn_url_with_db)

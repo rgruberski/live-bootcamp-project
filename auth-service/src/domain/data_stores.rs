@@ -1,10 +1,8 @@
-use std::fmt;
-use std::fmt::{Display, Formatter};
 use rand::Rng;
-use serde::Serialize;
 use uuid::Uuid;
 use thiserror::Error;
 use color_eyre::eyre::{eyre, Report, Result};
+use secrecy::{ExposeSecret, Secret};
 use super::{email::Email, password::Password, User};
 
 #[async_trait::async_trait]
@@ -18,9 +16,9 @@ pub trait UserStore {
 }
 #[async_trait::async_trait]
 pub trait BannedTokenStore {
-    async fn add_token(&mut self, token: String) -> Result<(), BannedTokenStoreError>;
+    async fn add_token(&mut self, token: Secret<String>) -> Result<(), BannedTokenStoreError>;
 
-    async fn contains_token(&self, token: &str) -> Result<bool, BannedTokenStoreError>;
+    async fn contains_token(&self, token: &Secret<String>) -> Result<bool, BannedTokenStoreError>;
 }
 
 #[derive(Debug, Error)]
@@ -73,14 +71,20 @@ impl PartialEq for TwoFACodeStoreError {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct LoginAttemptId(String);
+#[derive(Debug, Clone)]
+pub struct LoginAttemptId(Secret<String>);
+
+impl PartialEq for LoginAttemptId {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.expose_secret() == other.0.expose_secret()
+    }
+}
 
 impl LoginAttemptId {
-    pub fn parse(id: String) -> Result<Self/*, String*/> {
+    pub fn parse(id: Secret<String>) -> Result<Self> {
         // Use the `parse_str` function from the `uuid` crate to ensure `id` is a valid UUID
-        match Uuid::parse_str(&id) {
-            Ok(_) => Ok(LoginAttemptId(id.to_string())),
+        match Uuid::parse_str(id.expose_secret()) {
+            Ok(_) => Ok(Self(id)),
             Err(_) => Err(eyre!("Invalid login attempt id")),
         }
     }
@@ -89,31 +93,40 @@ impl LoginAttemptId {
 impl Default for LoginAttemptId {
     fn default() -> Self {
         // Use the `uuid` crate to generate a random version 4 UUID
-        LoginAttemptId(Uuid::new_v4().to_string())
+        Self(Secret::new(Uuid::new_v4().to_string()))
     }
 }
 
-impl Display for LoginAttemptId {
+/*impl Display for LoginAttemptId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "{}", self.0)
     }
-}
+}*/
 
 // TODO: Implement AsRef<str> for LoginAttemptId
-impl AsRef<str> for LoginAttemptId {
-    fn as_ref(&self) -> &str {
+impl AsRef<Secret<String>> for LoginAttemptId {
+    fn as_ref(&self) -> &Secret<String> {
         &self.0
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize)]
-pub struct TwoFACode(String);
+#[derive(Clone, Debug)]
+pub struct TwoFACode(Secret<String>);
+
+impl PartialEq for TwoFACode {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.expose_secret() == other.0.expose_secret()
+    }
+}
 
 impl TwoFACode {
-    pub fn parse(code: String) -> Result<Self/*, String*/> {
+    pub fn parse(code: Secret<String>) -> Result<Self> {
         // Ensure `code` is a valid 6-digit code
-        match code.parse::<u32>() {
-            Ok(_) if code.len() == 6 => Ok(TwoFACode(code.to_string())),
+
+        let code_as_u32 = code.expose_secret().parse::<u32>();
+        
+        match code_as_u32 {
+            Ok(value) if value.to_string().len() == 6 => Ok(Self(code)),
             _ => Err(eyre!("Invalid email code")),
         }
     }
@@ -123,14 +136,13 @@ impl Default for TwoFACode {
     fn default() -> Self {
         // Use the `rand` crate to generate a random 2FA code.
         // The code should be 6 digits (ex: 834629)
-        let code = rand::thread_rng().gen_range(100000..999999).to_string();
-        TwoFACode(code)
+        TwoFACode(Secret::new(rand::thread_rng()
+            .gen_range(100000..999999).to_string()))
     }
 }
 
-// TODO: Implement AsRef<str> for TwoFACode
-impl AsRef<str> for TwoFACode {
-    fn as_ref(&self) -> &str {
+impl AsRef<Secret<String>> for TwoFACode {
+    fn as_ref(&self) -> &Secret<String> {
         &self.0
     }
 }

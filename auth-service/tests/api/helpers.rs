@@ -2,6 +2,7 @@ use std::str::FromStr;
 use uuid::Uuid;
 use std::sync::Arc;
 use reqwest::cookie::Jar;
+use secrecy::ExposeSecret;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use auth_service::{Application, AppState, MockEmailClient, get_postgres_pool,
@@ -10,6 +11,7 @@ use auth_service::{Application, AppState, MockEmailClient, get_postgres_pool,
 use tokio::sync::RwLock;
 use auth_service::app_state::{BannedTokenStoreType, TwoFACodeStoreType};
 use auth_service::utils::constants::{test, DATABASE_URL, REDIS_HOST_NAME};
+use secrecy::{Secret};
 
 pub struct TestApp {
     pub address: String,
@@ -165,9 +167,9 @@ pub fn get_random_email() -> String {
 async fn configure_postgresql(db_name: &str) -> PgPool {
     let postgresql_conn_url = DATABASE_URL.to_owned();
 
-    configure_database(&postgresql_conn_url, &db_name).await;
+    configure_database(&postgresql_conn_url.expose_secret(), &db_name).await;
 
-    let postgresql_conn_url_with_db = format!("{}/{}", postgresql_conn_url, db_name);
+    let postgresql_conn_url_with_db = Secret::new(format!("{}/{}", postgresql_conn_url.expose_secret(), db_name));
 
     get_postgres_pool(&postgresql_conn_url_with_db)
         .await
@@ -203,7 +205,7 @@ async fn configure_database(db_conn_string: &str, db_name: &str) {
 }
 
 async fn delete_database(db_name: &str) {
-    let postgresql_conn_url: String = DATABASE_URL.to_owned();
+    let postgresql_conn_url: String = DATABASE_URL.expose_secret().to_owned();
 
     let connection_options = PgConnectOptions::from_str(&postgresql_conn_url)
         .expect("Failed to parse PostgresSQL connection string");

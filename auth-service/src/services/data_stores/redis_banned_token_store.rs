@@ -3,7 +3,7 @@ use std::sync::Arc;
 use redis::{Commands, Connection};
 use tokio::sync::RwLock;
 use color_eyre::eyre::Context;
-
+use secrecy::{ExposeSecret, Secret};
 use crate::{
     domain::data_stores::{BannedTokenStore, BannedTokenStoreError},
     utils::auth::TOKEN_TTL_SECONDS,
@@ -22,7 +22,7 @@ impl RedisBannedTokenStore {
 #[async_trait::async_trait]
 impl BannedTokenStore for RedisBannedTokenStore {
     #[tracing::instrument(name = "Storing banned JWT token in Redis", skip_all)]
-    async fn add_token(&mut self, token: String) -> Result<(), BannedTokenStoreError> {
+    async fn add_token(&mut self, token: Secret<String>) -> Result<(), BannedTokenStoreError> {
         // TODO:
         // 1. Create a new key using the get_key helper function.
         // 2. Call the set_ex command on the Redis connection to set a new key/value pair with an expiration time (TTL).
@@ -31,7 +31,7 @@ impl BannedTokenStore for RedisBannedTokenStore {
         // NOTE: The TTL is expected to be a u64 so you will have to cast TOKEN_TTL_SECONDS to a u64.
         // Return BannedTokenStoreError::UnexpectedError if casting fails or the call to set_ex fails.
 
-        let token_key = get_key(token.as_str());
+        let token_key = get_key(token.expose_secret().as_str());
 
         let _: () = self
             .conn
@@ -45,10 +45,10 @@ impl BannedTokenStore for RedisBannedTokenStore {
     }
 
     #[tracing::instrument(name = "Checking for banned JWT token in Redis", skip_all)]
-    async fn contains_token(&self, token: &str) -> Result<bool, BannedTokenStoreError> {
+    async fn contains_token(&self, token: &Secret<String>) -> Result<bool, BannedTokenStoreError> {
         // Check if the token exists by calling the exists method on the Redis connection
 
-        let token_key = get_key(token);
+        let token_key = get_key(token.expose_secret());
 
         let is_banned: bool = self
             .conn

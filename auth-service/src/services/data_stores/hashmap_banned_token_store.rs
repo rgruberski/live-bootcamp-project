@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use secrecy::{ExposeSecret, Secret};
 use crate::domain::{BannedTokenStore, BannedTokenStoreError};
 
 #[derive(Default)]
@@ -9,7 +10,7 @@ pub struct HashsetBannedTokenStore {
 #[async_trait::async_trait]
 impl BannedTokenStore for HashsetBannedTokenStore {
 
-    async fn add_token(&mut self, token: String) -> Result<(), BannedTokenStoreError> {
+    async fn add_token(&mut self, token: Secret<String>) -> Result<(), BannedTokenStoreError> {
         /*match self.tokens.get(&token) {
             Some(e) => Err(BannedTokenStoreError::UnexpectedError),
             None => {
@@ -18,18 +19,17 @@ impl BannedTokenStore for HashsetBannedTokenStore {
             }
         }*/
 
-        self.tokens.insert(token.to_owned());
+        self.tokens.insert(token.expose_secret().to_owned());
         Ok(())
     }
 
-    async fn contains_token(&self, token: &str) -> Result<bool, BannedTokenStoreError> {
-        Ok(self.tokens.contains(token))
+    async fn contains_token(&self, token: &Secret<String>) -> Result<bool, BannedTokenStoreError> {
+        Ok(self.tokens.contains(token.expose_secret()))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::{BannedTokenStoreError};
     use super::*;
 
     #[tokio::test]
@@ -37,12 +37,12 @@ mod tests {
 
         let mut token_store = HashsetBannedTokenStore::default();
 
-        let token = String::from("token");
+        let token = Secret::new(String::from("token"));
 
         let result = token_store.add_token(token.clone()).await;
 
         assert!(result.is_ok());
-        assert!(token_store.tokens.contains(token.as_str()));
+        assert!(token_store.tokens.contains(token.expose_secret()));
     }
 
     // #[tokio::test]

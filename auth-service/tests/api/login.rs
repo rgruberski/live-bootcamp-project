@@ -1,3 +1,4 @@
+use secrecy::Secret;
 use auth_service::domain::{Email, LoginAttemptId};
 use auth_service::routes::TwoFactorAuthResponse;
 use auth_service::utils::constants::JWT_COOKIE_NAME;
@@ -135,12 +136,12 @@ async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
         .two_fa_code_store
         .read()
         .await
-        .get_code(&Email::parse(&random_email).unwrap())
+        .get_code(&Email::parse(Secret::new(random_email)).unwrap())
         .await
         .unwrap();
 
     assert_eq!(
-        LoginAttemptId::parse(json_data.login_attempt_id).unwrap(),
+        LoginAttemptId::parse(Secret::new(json_data.login_attempt_id)).unwrap(),
         login_attempt_id.0
     );
 }

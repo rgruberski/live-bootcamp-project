@@ -39,6 +39,7 @@ impl TwoFACodeStore for HashmapTwoFACodeStore {
 
 #[cfg(test)]
 mod tests {
+    use secrecy::Secret;
     use uuid::Uuid;
 
     use super::*;
@@ -47,9 +48,9 @@ mod tests {
     async fn test_add_code() {
 
         let mut store = HashmapTwoFACodeStore::default();
-        let email = Email::parse("user@example.com").unwrap();
-        let login_attempt_id = LoginAttemptId::parse(Uuid::new_v4().to_string()).unwrap();
-        let fa_code = TwoFACode::parse("123456".to_string()).unwrap();
+        let email = Email::parse(Secret::new("user@example.com".to_owned())).unwrap();
+        let login_attempt_id = LoginAttemptId::parse(Secret::new(Uuid::new_v4().to_string())).unwrap();
+        let fa_code = TwoFACode::parse(Secret::new("123456".to_string())).unwrap();
 
         assert!(store
             .add_code(email.clone(), login_attempt_id.clone(), fa_code.clone())
@@ -61,9 +62,9 @@ mod tests {
     async fn test_remove_code() {
 
         let mut store = HashmapTwoFACodeStore::default();
-        let email = Email::parse("user@example.com").unwrap();
-        let login_attempt_id = LoginAttemptId::parse(Uuid::new_v4().to_string()).unwrap();
-        let fa_code = TwoFACode::parse("123456".to_string()).unwrap();
+        let email = Email::parse(Secret::new("user@example.com".to_owned())).unwrap();
+        let login_attempt_id = LoginAttemptId::parse(Secret::new(Uuid::new_v4().to_string())).unwrap();
+        let fa_code = TwoFACode::parse(Secret::new("123456".to_string())).unwrap();
 
         assert!(store
             .add_code(email.clone(), login_attempt_id.clone(), fa_code.clone())
@@ -83,9 +84,9 @@ mod tests {
     async fn test_get_code() {
 
         let mut store = HashmapTwoFACodeStore::default();
-        let email = Email::parse("user@example.com").unwrap();
-        let login_attempt_id = LoginAttemptId::parse(Uuid::new_v4().to_string()).unwrap();
-        let fa_code = TwoFACode::parse("123456".to_string()).unwrap();
+        let email = Email::parse(Secret::new("user@example.com".to_owned())).unwrap();
+        let login_attempt_id = LoginAttemptId::parse(Secret::new(Uuid::new_v4().to_string())).unwrap();
+        let fa_code = TwoFACode::parse(Secret::new("123456".to_string())).unwrap();
 
         assert!(store
             .add_code(email.clone(), login_attempt_id.clone(), fa_code.clone())

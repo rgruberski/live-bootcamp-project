@@ -1,6 +1,7 @@
 use axum::{http::StatusCode, response::IntoResponse};
 use axum::extract::State;
 use axum_extra::extract::CookieJar;
+use secrecy::Secret;
 use crate::AppState;
 use crate::domain::AuthAPIError;
 use crate::utils::auth;
@@ -18,7 +19,7 @@ pub async fn logout(State(state): State<AppState>, jar: CookieJar)
         None => return (jar, Err(AuthAPIError::MissingToken)),
     };
 
-    let token = cookie.value().to_owned();
+    let token = Secret::new(cookie.value().to_owned());
 
     // TODO: Validate JWT token by calling `validate_token` from the auth service.
     // If the token is valid you can ignore the returned claims for now.
