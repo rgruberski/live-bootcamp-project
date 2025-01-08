@@ -26,4 +26,5 @@ WORKDIR /app
 COPY --from=builder /app/target/release/auth-service /usr/local/bin
 COPY --from=builder /app/assets /app/assets
 ENV REDIS_HOST_NAME=redis
+ENV POSTMARK_AUTH_TOKEN=5009e843-d34a-4445-b6cb-718d5a0e42e3
 ENTRYPOINT ["/usr/local/bin/auth-service"]

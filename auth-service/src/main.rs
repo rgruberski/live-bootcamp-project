@@ -1,12 +1,15 @@
+use reqwest::Client;
 use std::sync::Arc;
 use secrecy::ExposeSecret;
 use sqlx::{Executor, PgPool};
 use sqlx::postgres::PgPoolOptions;
-use auth_service::{Application, AppState, MockEmailClient, get_postgres_pool, PostgresUserStore, get_redis_client, RedisBannedTokenStore, RedisTwoFACodeStore};
+use auth_service::{Application, AppState, get_postgres_pool, PostgresUserStore, get_redis_client, RedisBannedTokenStore, RedisTwoFACodeStore, PostmarkEmailClient};
 use tokio::sync::RwLock;
 use uuid::Uuid;
-use auth_service::utils::constants::{APP_ADDRESS, DATABASE_URL, REDIS_HOST_NAME};
+use auth_service::utils::constants::{APP_ADDRESS, DATABASE_URL, POSTMARK_AUTH_TOKEN, REDIS_HOST_NAME};
 use auth_service::utils::tracing::init_tracing;
+use auth_service::utils::constants::prod;
+use auth_service::domain::Email;
 use secrecy::{Secret};
 
 #[tokio::main]
@@ -30,8 +33,8 @@ async fn main() {
     let two_fa_code_store =
         Arc::new(RwLock::new(RedisTwoFACodeStore::new(redis_conn)));
 
-    let email_client =
-        Arc::new(MockEmailClient);
+    //let email_client = Arc::new(MockEmailClient);
+    let email_client = Arc::new(configure_postmark_email_client());
 
     let app_state = AppState::new(user_store, banned_token_store, two_fa_code_store,
                                   email_client);
@@ -48,6 +51,8 @@ async fn configure_postgresql() -> PgPool {
 
     // We are creating a new database for each test case, and we need to ensure each database has a unique name!
     let db_name = Uuid::new_v4().to_string();
+
+    tracing::info!("db name {}", &db_name);
 
     configure_database(&postgresql_conn_url.expose_secret(), &db_name).await;
 
@@ -92,4 +97,18 @@ fn configure_redis() -> redis::Connection {
         .expect("Failed to get Redis client")
         .get_connection()
         .expect("Failed to get Redis connection")
+}
+
+fn configure_postmark_email_client() -> PostmarkEmailClient {
+    let http_client = Client::builder()
+        .timeout(prod::email_client::TIMEOUT)
+        .build()
+        .expect("Failed to build HTTP client");
+
+    PostmarkEmailClient::new(
+        prod::email_client::BASE_URL.to_owned(),
+        Email::parse(Secret::new(prod::email_client::SENDER.to_owned())).unwrap(),
+        POSTMARK_AUTH_TOKEN.to_owned(),
+        http_client,
+    )
 }

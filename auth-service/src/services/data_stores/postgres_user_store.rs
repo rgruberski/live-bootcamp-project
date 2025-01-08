@@ -28,7 +28,7 @@ impl PostgresUserStore {
 
 #[async_trait::async_trait]
 impl UserStore for PostgresUserStore {
-    #[tracing::instrument(name = "Adding user to PostgreSQL", skip_all)]
+    #[tracing::instrument(name = "Adding user to PostgresSQL", skip_all)]
     async fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
 
         /*let password_hash = match compute_password_hash(user.password.as_ref()) {

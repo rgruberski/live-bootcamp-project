@@ -28,6 +28,7 @@ pub use services::data_stores::MockEmailClient;
 pub use services::data_stores::PostgresUserStore;
 pub use services::data_stores::RedisBannedTokenStore;
 pub use services::data_stores::RedisTwoFACodeStore;
+pub use services::postmark_email_client::PostmarkEmailClient;
 
 pub mod app_state;
 pub mod domain;

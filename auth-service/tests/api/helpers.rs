@@ -5,18 +5,22 @@ use reqwest::cookie::Jar;
 use secrecy::ExposeSecret;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use auth_service::{Application, AppState, MockEmailClient, get_postgres_pool,
+use auth_service::{Application, AppState, get_postgres_pool,
                    PostgresUserStore, RedisBannedTokenStore, get_redis_client,
-                   RedisTwoFACodeStore};
+                   RedisTwoFACodeStore, PostmarkEmailClient};
 use tokio::sync::RwLock;
 use auth_service::app_state::{BannedTokenStoreType, TwoFACodeStoreType};
 use auth_service::utils::constants::{test, DATABASE_URL, REDIS_HOST_NAME};
 use secrecy::{Secret};
+use wiremock::MockServer;
+use auth_service::domain::Email;
+use reqwest::Client;
 
 pub struct TestApp {
     pub address: String,
     pub cookie_jar: Arc<Jar>,
-    pub http_client: reqwest::Client,
+    pub http_client: Client,
+    pub email_server: MockServer,
     pub banned_token_store: BannedTokenStoreType,
     pub two_fa_code_store: TwoFACodeStoreType,
     pub db_name: String,
@@ -49,8 +53,11 @@ impl TestApp {
         let two_fa_code_store =
             Arc::new(RwLock::new(RedisTwoFACodeStore::new(redis_conn)));
 
-        let email_client =
-            Arc::new(MockEmailClient);
+        // let email_client = Arc::new(MockEmailClient);
+
+        let email_server = MockServer::start().await;
+        let base_url = email_server.uri();
+        let email_client = Arc::new(configure_postmark_email_client(base_url));
 
         let app_state = AppState::new(user_store, banned_token_store.clone(),
                                       two_fa_code_store.clone(), email_client.clone());
@@ -72,8 +79,8 @@ impl TestApp {
             .build()
             .unwrap();
 
-        Self { address, cookie_jar, http_client, banned_token_store, two_fa_code_store, db_name,
-            clean_up_called: false, }
+        Self { address, cookie_jar, http_client, email_server, banned_token_store,
+            two_fa_code_store, db_name, clean_up_called: false, }
     }
 
     pub async fn get_root(&self) -> reqwest::Response {
@@ -243,4 +250,17 @@ fn configure_redis() -> redis::Connection {
         .expect("Failed to get Redis client")
         .get_connection()
         .expect("Failed to get Redis connection")
+}
+
+fn configure_postmark_email_client(base_url: String) -> PostmarkEmailClient {
+    let postmark_auth_token = Secret::new("auth_token".to_owned());
+
+    let sender = Email::parse(Secret::new(test::email_client::SENDER.to_owned())).unwrap();
+
+    let http_client = Client::builder()
+        .timeout(test::email_client::TIMEOUT)
+        .build()
+        .expect("Failed to build HTTP client");
+
+    PostmarkEmailClient::new(base_url, sender, postmark_auth_token, http_client)
 }

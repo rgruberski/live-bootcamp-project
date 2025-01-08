@@ -132,16 +132,16 @@ async fn should_return_409_if_email_already_exists() {
     
     assert_eq!(response.status().as_u16(), 201);
 
-    // let response = app.post_signup(&user_data).await;
+    let response = app.post_signup(&user_data).await;
     
-    // assert_eq!(response.status().as_u16(), 409);
+    assert_eq!(response.status().as_u16(), 409);
 
-    /*assert_eq!(
+    assert_eq!(
         response
             .json::<ErrorResponse>()
             .await
             .expect("Could not deserialize response body to ErrorResponse")
             .error,
         "User already exists".to_owned()
-    );*/
+    );
 }
